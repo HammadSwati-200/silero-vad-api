@@ -13,21 +13,18 @@ model, utils = torch.hub.load(
     trust_repo=True
 )
 
-(get_speech_timestamps, _, read_audio, _, _, _) = utils
+# Adjusted for new Silero return signature (5 items instead of 6)
+(get_speech_timestamps, _, read_audio, _, _) = utils
 
 @app.post("/analyze")
 async def analyze(file: UploadFile):
-    # Read audio file
     audio_bytes = await file.read()
     wav, sr = sf.read(io.BytesIO(audio_bytes))
 
-    # Convert to tensor
     wav_tensor = torch.tensor(wav).float()
 
-    # Run VAD
     speech_timestamps = get_speech_timestamps(wav_tensor, model, sampling_rate=sr)
 
-    # Prepare response
     return {
         "speech_segments": speech_timestamps,
         "total_speech_duration_sec": sum([seg["end"] - seg["start"] for seg in speech_timestamps]) / sr
